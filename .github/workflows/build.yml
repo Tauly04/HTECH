@@ -18,7 +18,7 @@ jobs:
         uses: NuGet/setup-nuget@v1
 
       - name: Restore packages
-        run: nuget restore KsbReportTool.sln
+        run: nuget restore KsbReportTool.sln -SolutionDir .
 
       - name: Build Release
         run: msbuild KsbReportTool.sln /p:Configuration=Release
