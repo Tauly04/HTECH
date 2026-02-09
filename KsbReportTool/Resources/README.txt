@@ -1,5 +1,8 @@
-请将实际的模板文件重命名为 KSBTemplate.xlsx 并替换此文件。
+模板文件放置说明
+================
 
-模板文件命名规范: KSBTemplate.xlsx
+请在此目录放置：
+KSBTemplate.xlsx - KSB初始性能报告模板文件
 
-该文件将作为 EmbeddedResource 嵌入到程序集中。
+此文件会被作为 EmbeddedResource 嵌入到程序集中。
+编译时如果没有此文件，构建会失败。
