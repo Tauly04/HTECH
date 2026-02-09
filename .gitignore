@@ -1,0 +1,21 @@
+# Build outputs
+bin/
+obj/
+*.exe
+*.pdb
+*.dll
+*.zip
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+
+# Release folder (keep the structure but not binaries in git)
+Release_Ready/*.dll
+Release_Ready/*.exe
+Release_Ready/*.config
+Release_Ready/*.pdb
+
+# macOS
+.DS_Store
