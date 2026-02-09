@@ -10,7 +10,6 @@ namespace KsbReportTool
     {
         private string _table1Path;
         private string _table2Path;
-        private string _templatePath;
         private string _outputDir;
 
         public MainForm()
@@ -31,12 +30,6 @@ namespace KsbReportTool
         {
             _table2Path = SelectXlsx();
             if (!string.IsNullOrEmpty(_table2Path)) txtTable2.Text = _table2Path;
-        }
-
-        private void btnSelectTemplate_Click(object sender, EventArgs e)
-        {
-            _templatePath = SelectXlsx();
-            if (!string.IsNullOrEmpty(_templatePath)) txtTemplate.Text = _templatePath;
         }
 
         private void btnSelectOutput_Click(object sender, EventArgs e)
@@ -69,16 +62,16 @@ namespace KsbReportTool
         {
             try
             {
-                if (string.IsNullOrEmpty(_table1Path) || string.IsNullOrEmpty(_table2Path) || string.IsNullOrEmpty(_templatePath))
+                if (string.IsNullOrEmpty(_table1Path) || string.IsNullOrEmpty(_table2Path))
                 {
-                    Log("请先选择表1、表2、模板文件。");
+                    Log("请先选择表1、表2。");
                     return;
                 }
 
                 if (!Directory.Exists(_outputDir)) Directory.CreateDirectory(_outputDir);
 
                 Log("开始生成...");
-                var result = KsbProcessor.Process(_table1Path, _table2Path, _templatePath, _outputDir, chkZip.Checked);
+                var result = KsbProcessor.Process(_table1Path, _table2Path, _outputDir, chkZip.Checked);
 
                 Log("生成数量: " + result.GeneratedCount);
                 Log("跳过数量: " + result.SkippedCount);

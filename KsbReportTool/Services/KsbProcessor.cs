@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 
@@ -19,7 +20,7 @@ namespace KsbReportTool.Services
 
     public static class KsbProcessor
     {
-        public static KsbProcessResult Process(string table1Path, string table2Path, string templatePath, string outputDir, bool makeZip)
+        public static KsbProcessResult Process(string table1Path, string table2Path, string outputDir, bool makeZip)
         {
             var result = new KsbProcessResult();
             var logs = new List<string>();
@@ -55,82 +56,90 @@ namespace KsbReportTool.Services
                         continue;
                     }
 
-                    using (var fsTemplate = File.OpenRead(templatePath))
+                    // 每次生成编号时重新加载模板，避免污染
+                    var wbT = LoadTemplateWorkbookFromEmbeddedResource();
+                    if (wbT == null)
                     {
-                        var wbT = new XSSFWorkbook(fsTemplate);
-                        var wsT = wbT.GetSheet(KsbRules.DataSheetName);
-                        if (wsT == null)
-                        {
-                            result.SkippedCount++;
-                            result.SkippedItems.Add(serial + " : no_mapping");
-                            continue;
-                        }
-
-                        var t2 = table2Index[serial];
-                        WriteTextIfAllowed(wsT, "G8", t2.Tag);
-                        WriteTextIfAllowed(wsT, "G9", t2.Sap);
-                        WriteTextIfAllowed(wsT, "B10", t2.Model);
-                        WriteTextIfAllowed(wsT, "B11", t2.SapLine);
-                        WriteTextIfAllowed(wsT, "B12", "OH2");
-
-                        WriteIfAllowed(wsT, "G10", SpeedStage(ReadCell(sheet, "C44")));
-
-                        WriteIfAllowed(wsT, "B20", ReadCell(sheet, "K43"));
-                        WriteIfAllowed(wsT, "B21", ReadCell(sheet, "G44"));
-                        WriteIfAllowed(wsT, "G20", ReadCell(sheet, "K42"));
-                        WriteIfAllowed(wsT, "G21", ReadCell(sheet, "G45"));
-                        WriteIfAllowed(wsT, "B28", ReadCell(sheet, "C42"));
-                        WriteIfAllowed(wsT, "G28", ReadCell(sheet, "C43"));
-                        WriteIfAllowed(wsT, "G29", ReadCell(sheet, "C44"));
-                        WriteIfAllowed(wsT, "B30", ReadCell(sheet, "C45"));
-                        WriteIfAllowed(wsT, "B31", ReadCell(sheet, "G42"));
-                        WriteIfAllowed(wsT, "B39", ReadCell(sheet, "N42"));
-                        WriteIfAllowed(wsT, "G39", ReadCell(sheet, "N43"));
-                        WriteIfAllowed(wsT, "B49", ReadCell(sheet, "G43"));
-                        WriteIfAllowed(wsT, "G30", ReadCell(sheet, "R45"));
-                        WriteIfAllowed(wsT, "G34", null);
-                        WriteIfAllowed(wsT, "I222", ReadCell(sheet, "J29"));
-
-                        var inVals = ReadRange(sheet, "H51", "H57");
-                        var outVals = ReadRange(sheet, "I51", "I57");
-                        var pairs = ConvertPressurePairs(inVals, outVals);
-                        WriteRow(wsT, 63, pairs.Item1);
-                        WriteRow(wsT, 64, pairs.Item2);
-
-                        WriteRow(wsT, 60, ReadRange(sheet, "F51", "F57"));
-                        WriteRow(wsT, 65, ReadRange(sheet, "G51", "G57"));
-                        WriteRow(wsT, 67, ReadRange(sheet, "D51", "D57"));
-                        WriteRow(wsT, 172, ReadRange(sheet, "K51", "K57"));
-                        WriteRow(wsT, 174, ReadRange(sheet, "J51", "J57"));
-                        WriteRow(wsT, 180, ReadRange(sheet, "M51", "M57"));
-                        WriteRow(wsT, 185, ReadRange(sheet, "N51", "N57"));
-                        WriteRow(wsT, 186, ReadRange(sheet, "Q51", "Q57"));
-                        WriteRow(wsT, 187, ReadRange(sheet, "S51", "S57"));
-                        WriteRow(wsT, 201, ReadRange(sheet, "O51", "O57"));
-                        WriteRow(wsT, 203, ReadRange(sheet, "P51", "P57"));
-                        WriteRow(wsT, 207, ReadRange(sheet, "Q51", "Q57"));
-                        WriteRow(wsT, 209, ReadRange(sheet, "S51", "S57"));
-
-                        var n45 = ReadCell(sheet, "N45");
-                        var k44 = ReadCell(sheet, "K44");
-                        WriteRow(wsT, 173, RepeatValue(n45, 7));
-                        WriteRow(wsT, 182, RepeatValue(k44, 7));
-
-                        var testDate = ParseExcelDate(ReadCell(sheet, "J29")) ?? DateTime.Today;
-                        var tempsPress = GenWaterTempAndPressure(serial, testDate);
-                        WriteRow(wsT, 61, tempsPress.Item1.Cast<object>().ToList());
-                        WriteRow(wsT, 62, tempsPress.Item2.Cast<object>().ToList());
-
-                        var densities = tempsPress.Item1.Select(t => (object)Math.Round(WaterDensity(t), 3)).ToList();
-                        WriteRow(wsT, 170, densities);
-
-                        var outPath = Path.Combine(outputDir, serial + "_KSB初始性能报告.xlsx");
-                        using (var fsOut = File.Create(outPath))
-                        {
-                            wbT.Write(fsOut);
-                        }
-                        result.GeneratedCount++;
+                        result.SkippedCount++;
+                        result.SkippedItems.Add(serial + " : template_load_failed");
+                        continue;
                     }
+
+                    var wsT = wbT.GetSheet(KsbRules.DataSheetName);
+                    if (wsT == null)
+                    {
+                        result.SkippedCount++;
+                        result.SkippedItems.Add(serial + " : no_data_sheet");
+                        continue;
+                    }
+
+                    var t2 = table2Index[serial];
+                    WriteTextIfAllowed(wsT, "G8", t2.Tag);
+                    WriteTextIfAllowed(wsT, "G9", t2.Sap);
+                    WriteTextIfAllowed(wsT, "B10", t2.Model);
+                    WriteTextIfAllowed(wsT, "B11", t2.SapLine);
+                    WriteTextIfAllowed(wsT, "B12", "OH2");
+
+                    WriteIfAllowed(wsT, "G10", SpeedStage(ReadCell(sheet, "C44")));
+
+                    WriteIfAllowed(wsT, "B20", ReadCell(sheet, "K43"));
+                    WriteIfAllowed(wsT, "B21", ReadCell(sheet, "G44"));
+                    WriteIfAllowed(wsT, "G20", ReadCell(sheet, "K42"));
+                    WriteIfAllowed(wsT, "G21", ReadCell(sheet, "G45"));
+                    WriteIfAllowed(wsT, "B28", ReadCell(sheet, "C42"));
+                    WriteIfAllowed(wsT, "G28", ReadCell(sheet, "C43"));
+                    WriteIfAllowed(wsT, "G29", ReadCell(sheet, "C44"));
+                    WriteIfAllowed(wsT, "B30", ReadCell(sheet, "C45"));
+                    WriteIfAllowed(wsT, "B31", ReadCell(sheet, "G42"));
+                    WriteIfAllowed(wsT, "B39", ReadCell(sheet, "N42"));
+                    WriteIfAllowed(wsT, "G39", ReadCell(sheet, "N43"));
+                    WriteIfAllowed(wsT, "B49", ReadCell(sheet, "G43"));
+                    WriteIfAllowed(wsT, "G30", ReadCell(sheet, "R45"));
+                    WriteIfAllowed(wsT, "G34", null);
+                    WriteIfAllowed(wsT, "I222", ReadCell(sheet, "J29"));
+
+                    var inVals = ReadRange(sheet, "H51", "H57");
+                    var outVals = ReadRange(sheet, "I51", "I57");
+                    var pairs = ConvertPressurePairs(inVals, outVals);
+                    WriteRow(wsT, 63, pairs.Item1);
+                    WriteRow(wsT, 64, pairs.Item2);
+
+                    WriteRow(wsT, 60, ReadRange(sheet, "F51", "F57"));
+                    WriteRow(wsT, 65, ReadRange(sheet, "G51", "G57"));
+                    WriteRow(wsT, 67, ReadRange(sheet, "D51", "D57"));
+                    WriteRow(wsT, 172, ReadRange(sheet, "K51", "K57"));
+                    WriteRow(wsT, 174, ReadRange(sheet, "J51", "J57"));
+                    WriteRow(wsT, 180, ReadRange(sheet, "M51", "M57"));
+                    WriteRow(wsT, 185, ReadRange(sheet, "N51", "N57"));
+                    WriteRow(wsT, 186, ReadRange(sheet, "Q51", "Q57"));
+                    WriteRow(wsT, 187, ReadRange(sheet, "S51", "S57"));
+                    WriteRow(wsT, 201, ReadRange(sheet, "O51", "O57"));
+                    WriteRow(wsT, 203, ReadRange(sheet, "P51", "P57"));
+                    WriteRow(wsT, 207, ReadRange(sheet, "Q51", "Q57"));
+                    WriteRow(wsT, 209, ReadRange(sheet, "S51", "S57"));
+
+                    var n45 = ReadCell(sheet, "N45");
+                    var k44 = ReadCell(sheet, "K44");
+                    WriteRow(wsT, 173, RepeatValue(n45, 7));
+                    WriteRow(wsT, 182, RepeatValue(k44, 7));
+
+                    var testDate = ParseExcelDate(ReadCell(sheet, "J29")) ?? DateTime.Today;
+                    var tempsPress = GenWaterTempAndPressure(serial, testDate);
+                    WriteRow(wsT, 61, tempsPress.Item1.Cast<object>().ToList());
+                    WriteRow(wsT, 62, tempsPress.Item2.Cast<object>().ToList());
+
+                    var densities = tempsPress.Item1.Select(t => (object)Math.Round(WaterDensity(t), 3)).ToList();
+                    WriteRow(wsT, 170, densities);
+
+                    var outPath = Path.Combine(outputDir, serial + "_KSB初始性能报告.xlsx");
+                    using (var fsOut = File.Create(outPath))
+                    {
+                        wbT.Write(fsOut);
+                    }
+                    result.GeneratedCount++;
+
+                    // 关闭工作簿释放资源
+                    wbT.Close();
                 }
             }
 
@@ -143,6 +152,42 @@ namespace KsbReportTool.Services
 
             result.AllLogs = logs;
             return result;
+        }
+
+        private static XSSFWorkbook LoadTemplateWorkbookFromEmbeddedResource()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            // 资源名通常是: 命名空间.文件夹.文件名
+            var resourceName = "KsbReportTool.Resources.KSBTemplate.xlsx";
+            
+            using (var stream = assembly.GetManifestResourceStream(resourceName))
+            {
+                if (stream == null)
+                {
+                    // 尝试查找所有资源名
+                    var resourceNames = assembly.GetManifestResourceNames();
+                    var matchingResource = resourceNames.FirstOrDefault(r => r.EndsWith("KSBTemplate.xlsx"));
+                    if (matchingResource != null)
+                    {
+                        using (var matchingStream = assembly.GetManifestResourceStream(matchingResource))
+                        {
+                            if (matchingStream != null)
+                            {
+                                var ms = new MemoryStream();
+                                matchingStream.CopyTo(ms);
+                                ms.Position = 0;
+                                return new XSSFWorkbook(ms);
+                            }
+                        }
+                    }
+                    return null;
+                }
+                
+                var memoryStream = new MemoryStream();
+                stream.CopyTo(memoryStream);
+                memoryStream.Position = 0;
+                return new XSSFWorkbook(memoryStream);
+            }
         }
 
         private static bool IsEmptySheet(ISheet sheet)

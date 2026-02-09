@@ -19,10 +19,9 @@ namespace KsbReportTool
         {
             this.btnSelectTable1 = new System.Windows.Forms.Button();
             this.btnSelectTable2 = new System.Windows.Forms.Button();
-            this.btnSelectTemplate = new System.Windows.Forms.Button();
             this.txtTable1 = new System.Windows.Forms.TextBox();
             this.txtTable2 = new System.Windows.Forms.TextBox();
-            this.txtTemplate = new System.Windows.Forms.TextBox();
+            this.lblTemplate = new System.Windows.Forms.Label();
             this.btnSelectOutput = new System.Windows.Forms.Button();
             this.txtOutputDir = new System.Windows.Forms.TextBox();
             this.btnRun = new System.Windows.Forms.Button();
@@ -51,16 +50,6 @@ namespace KsbReportTool
             this.btnSelectTable2.UseVisualStyleBackColor = true;
             this.btnSelectTable2.Click += new System.EventHandler(this.btnSelectTable2_Click);
             // 
-            // btnSelectTemplate
-            // 
-            this.btnSelectTemplate.Location = new System.Drawing.Point(20, 100);
-            this.btnSelectTemplate.Name = "btnSelectTemplate";
-            this.btnSelectTemplate.Size = new System.Drawing.Size(110, 28);
-            this.btnSelectTemplate.TabIndex = 2;
-            this.btnSelectTemplate.Text = "选择模板";
-            this.btnSelectTemplate.UseVisualStyleBackColor = true;
-            this.btnSelectTemplate.Click += new System.EventHandler(this.btnSelectTemplate_Click);
-            // 
             // txtTable1
             // 
             this.txtTable1.Location = new System.Drawing.Point(140, 23);
@@ -77,13 +66,14 @@ namespace KsbReportTool
             this.txtTable2.Size = new System.Drawing.Size(520, 21);
             this.txtTable2.TabIndex = 4;
             // 
-            // txtTemplate
+            // lblTemplate
             // 
-            this.txtTemplate.Location = new System.Drawing.Point(140, 103);
-            this.txtTemplate.Name = "txtTemplate";
-            this.txtTemplate.ReadOnly = true;
-            this.txtTemplate.Size = new System.Drawing.Size(520, 21);
-            this.txtTemplate.TabIndex = 5;
+            this.lblTemplate.AutoSize = true;
+            this.lblTemplate.Location = new System.Drawing.Point(140, 107);
+            this.lblTemplate.Name = "lblTemplate";
+            this.lblTemplate.Size = new System.Drawing.Size(107, 12);
+            this.lblTemplate.TabIndex = 5;
+            this.lblTemplate.Text = "模板: 内置（OH2）";
             // 
             // btnSelectOutput
             // 
@@ -151,10 +141,9 @@ namespace KsbReportTool
             this.Controls.Add(this.btnRun);
             this.Controls.Add(this.txtOutputDir);
             this.Controls.Add(this.btnSelectOutput);
-            this.Controls.Add(this.txtTemplate);
+            this.Controls.Add(this.lblTemplate);
             this.Controls.Add(this.txtTable2);
             this.Controls.Add(this.txtTable1);
-            this.Controls.Add(this.btnSelectTemplate);
             this.Controls.Add(this.btnSelectTable2);
             this.Controls.Add(this.btnSelectTable1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -170,10 +159,9 @@ namespace KsbReportTool
 
         private System.Windows.Forms.Button btnSelectTable1;
         private System.Windows.Forms.Button btnSelectTable2;
-        private System.Windows.Forms.Button btnSelectTemplate;
         private System.Windows.Forms.TextBox txtTable1;
         private System.Windows.Forms.TextBox txtTable2;
-        private System.Windows.Forms.TextBox txtTemplate;
+        private System.Windows.Forms.Label lblTemplate;
         private System.Windows.Forms.Button btnSelectOutput;
         private System.Windows.Forms.TextBox txtOutputDir;
         private System.Windows.Forms.Button btnRun;
